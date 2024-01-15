@@ -2,7 +2,7 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 use httparse::{Response, Status, EMPTY_HEADER};
 use tokio::{
     fs::File,
-    io::{stdin, stdout, AsyncReadExt, AsyncWriteExt},
+    io::{stdin, stdout, AsyncRead, AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
 };
 
@@ -32,32 +32,12 @@ async fn main() {
     .await
     .expect("cannot send connect request");
 
-    {
-        let mut buffer = [0u8; 4096];
-        let len = sock
-            .read(&mut buffer)
-            .await
-            .expect("cannot read connect response");
-        let mut headers = [EMPTY_HEADER; 16];
-        let mut resp = Response::new(&mut headers);
-        let status = resp
-            .parse(&buffer[..len])
-            .expect("cannot parse connect response");
-        match status {
-            Status::Complete(_) => {}
-            Status::Partial => panic!("connect response incomplete"),
-        }
-        match resp.code {
-            Some(code) => {
-                if code > 407 {
-                    panic!(
-                        "Proxy could not open connection to {}:{}",
-                        dest_host, dest_port
-                    );
-                }
-            }
-            None => unreachable!(),
-        }
+    let connected = get_response(&mut sock).await;
+    if !connected {
+        panic!(
+            "Proxy could not open connection to {}:{}",
+            dest_host, dest_port
+        );
     }
 
     let mut stdin = stdin();
@@ -111,6 +91,41 @@ async fn connection_string(dest_host: &str, dest_port: &str, auth_file: Option<&
 
             let encoded = BASE64_STANDARD.encode(&buffer);
             prefix + &format!("\nProxy-Authorization: Basic {}", encoded) + suffix
+        }
+    }
+}
+
+async fn get_response<R: AsyncRead + Unpin>(sock: &mut R) -> bool {
+    let mut buffer = Vec::with_capacity(4096);
+    'outer: loop {
+        let len = sock
+            .read_buf(&mut buffer.spare_capacity_mut())
+            .await
+            .expect("cannot read_connect response");
+        unsafe {
+            buffer.set_len(buffer.len() + len);
+        }
+        let mut headers = vec![EMPTY_HEADER; 16];
+        loop {
+            let mut resp = Response::new(&mut headers);
+            let status = resp.parse(&buffer);
+            if let Err(httparse::Error::TooManyHeaders) = status {
+                headers.resize(headers.len() + 16, EMPTY_HEADER);
+                continue;
+            }
+            let status = status.expect("cannot parse connect response");
+            match status {
+                Status::Complete(_) => match resp.code {
+                    Some(code) => return code <= 407,
+                    None => return false,
+                },
+                Status::Partial => {
+                    if buffer.len() == buffer.capacity() {
+                        buffer.reserve(4096);
+                    }
+                    continue 'outer;
+                }
+            }
         }
     }
 }
