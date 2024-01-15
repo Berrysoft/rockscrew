@@ -32,7 +32,7 @@ async fn main() {
     .await
     .expect("cannot send connect request");
 
-    let connected = get_response(&mut sock).await;
+    let (connected, buffer, len) = get_response(&mut sock).await;
     if !connected {
         panic!(
             "Proxy could not open connection to {}:{}",
@@ -42,6 +42,14 @@ async fn main() {
 
     let mut stdin = stdin();
     let mut stdout = stdout();
+
+    if len < buffer.len() {
+        stdout
+            .write_all(&buffer[len..])
+            .await
+            .expect("cannot write to stdout");
+        stdout.flush().await.expect("cannot flush stdout");
+    }
 
     let mut sock_buffer = [0u8; 4096];
     let mut stdin_buffer = [0u8; 4096];
@@ -95,7 +103,7 @@ async fn connection_string(dest_host: &str, dest_port: &str, auth_file: Option<&
     }
 }
 
-async fn get_response<R: AsyncRead + Unpin>(sock: &mut R) -> bool {
+async fn get_response<R: AsyncRead + Unpin>(sock: &mut R) -> (bool, Vec<u8>, usize) {
     let mut buffer = Vec::with_capacity(4096);
     'outer: loop {
         let len = sock
@@ -115,10 +123,14 @@ async fn get_response<R: AsyncRead + Unpin>(sock: &mut R) -> bool {
             }
             let status = status.expect("cannot parse connect response");
             match status {
-                Status::Complete(_) => match resp.code {
-                    Some(code) => return code <= 407,
-                    None => return false,
-                },
+                Status::Complete(len) => {
+                    println!("{:?}", resp.headers);
+                    let succeeded = match resp.code {
+                        Some(code) => code <= 407,
+                        None => false,
+                    };
+                    return (succeeded, buffer, len);
+                }
                 Status::Partial => {
                     if buffer.len() == buffer.capacity() {
                         buffer.reserve(4096);
