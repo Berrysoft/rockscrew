@@ -70,8 +70,8 @@ async fn main() {
 fn usage() {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-    println!("rorkscrew {} (Strawberry_Str@hotmail.com)\n\n", VERSION);
-    println!("usage: rorkscrew <proxyhost> <proxyport> <desthost> <destport> [authfile]\n");
+    println!("rockscrew {} (Strawberry_Str@hotmail.com)\n\n", VERSION);
+    println!("usage: rockscrew <proxyhost> <proxyport> <desthost> <destport> [authfile]\n");
 }
 
 async fn connection_string(dest_host: &str, dest_port: &str, auth_file: Option<&String>) -> String {
