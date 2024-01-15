@@ -1,0 +1,20 @@
+[package]
+name = "rockscrew"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+base64 = "0.21.7"
+httparse = "1.8.0"
+tokio = { version = "1.35.1", features = [
+    "fs",
+    "io-util",
+    "io-std",
+    "macros",
+    "net",
+    "rt",
+] }
+
+[profile.release]
+lto = true
+codegen-units = 1
