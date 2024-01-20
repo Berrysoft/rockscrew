@@ -215,45 +215,45 @@ mod stdio {
     use compio::{
         buf::{IoBuf, IoBufMut},
         driver::AsRawFd,
-        fs::File,
-        io::{AsyncRead, AsyncReadAt, AsyncWrite, AsyncWriteAt},
+        fs::pipe::{Receiver, Sender},
+        io::{AsyncRead, AsyncWrite},
         runtime::FromRawFd,
         BufResult,
     };
 
-    pub struct Stdin(ManuallyDrop<File>);
+    pub struct Stdin(ManuallyDrop<Receiver>);
 
     pub fn stdin() -> Stdin {
         Stdin(ManuallyDrop::new(unsafe {
-            File::from_raw_fd(std::io::stdin().as_raw_fd())
+            Receiver::from_raw_fd(std::io::stdin().as_raw_fd())
         }))
     }
 
     impl AsyncRead for Stdin {
         async fn read<B: IoBufMut>(&mut self, buf: B) -> BufResult<usize, B> {
-            self.0.read_at(buf, u64::MAX).await
+            self.0.read(buf).await
         }
     }
 
-    pub struct Stdout(ManuallyDrop<File>);
+    pub struct Stdout(ManuallyDrop<Sender>);
 
     pub fn stdout() -> Stdout {
         Stdout(ManuallyDrop::new(unsafe {
-            File::from_raw_fd(std::io::stdout().as_raw_fd())
+            Sender::from_raw_fd(std::io::stdout().as_raw_fd())
         }))
     }
 
     impl AsyncWrite for Stdout {
         async fn write<T: IoBuf>(&mut self, buf: T) -> BufResult<usize, T> {
-            self.0.write_at(buf, u64::MAX).await
+            self.0.write(buf).await
         }
 
         async fn flush(&mut self) -> std::io::Result<()> {
-            Ok(())
+            self.0.flush().await
         }
 
         async fn shutdown(&mut self) -> std::io::Result<()> {
-            self.flush().await
+            self.0.shutdown().await
         }
     }
 }
