@@ -144,7 +144,7 @@ async fn copy_io(mut src: impl AsyncRead, mut target: impl AsyncWrite) {
     }
 }
 
-#[cfg(windows)]
+#[cfg(not(unix))]
 mod stdio {
     use std::{
         io::{BorrowedBuf, Read, Write},
@@ -200,6 +200,56 @@ mod stdio {
 
         async fn flush(&mut self) -> std::io::Result<()> {
             compio::runtime::spawn_blocking(|| std::io::stdout().flush()).await
+        }
+
+        async fn shutdown(&mut self) -> std::io::Result<()> {
+            self.flush().await
+        }
+    }
+}
+
+#[cfg(unix)]
+mod stdio {
+    use std::mem::ManuallyDrop;
+
+    use compio::{
+        buf::{IoBuf, IoBufMut},
+        driver::AsRawFd,
+        fs::File,
+        io::{AsyncRead, AsyncReadAt, AsyncWrite, AsyncWriteAt},
+        runtime::FromRawFd,
+        BufResult,
+    };
+
+    pub struct Stdin(ManuallyDrop<File>);
+
+    pub fn stdin() -> Stdin {
+        Stdin(ManuallyDrop::new(unsafe {
+            File::from_raw_fd(std::io::stdin().as_raw_fd())
+        }))
+    }
+
+    impl AsyncRead for Stdin {
+        async fn read<B: IoBufMut>(&mut self, buf: B) -> BufResult<usize, B> {
+            self.0.read_at(buf, u64::MAX).await
+        }
+    }
+
+    pub struct Stdout(ManuallyDrop<File>);
+
+    pub fn stdout() -> Stdout {
+        Stdout(ManuallyDrop::new(unsafe {
+            File::from_raw_fd(std::io::stdout().as_raw_fd())
+        }))
+    }
+
+    impl AsyncWrite for Stdout {
+        async fn write<T: IoBuf>(&mut self, buf: T) -> BufResult<usize, T> {
+            self.0.write_at(buf, u64::MAX).await
+        }
+
+        async fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
         }
 
         async fn shutdown(&mut self) -> std::io::Result<()> {
