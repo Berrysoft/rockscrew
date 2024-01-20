@@ -13,14 +13,8 @@ license = "GPL-2.0-only"
 [dependencies]
 base64 = "0.21.7"
 httparse = "1.8.0"
-tokio = { version = "1.35.1", features = [
-    "fs",
-    "io-util",
-    "io-std",
-    "macros",
-    "net",
-    "rt",
-] }
+compio = { version = "0.9.0-beta.4", features = ["macros", "nightly"] }
+futures-util = "0.3.30"
 
 [profile.release]
 lto = true
