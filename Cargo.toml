@@ -13,13 +13,13 @@ license = "GPL-2.0-only"
 [dependencies]
 base64 = "0.21.7"
 httparse = "1.8.0"
-compio = { version = "0.9.0-beta.4", features = [
-    "macros",
-    "polling",
-    "nightly",
-] }
+compio = { version = "0.9.0-beta.4", features = ["macros", "nightly"] }
 futures-util = "0.3.30"
 
 [profile.release]
 lto = true
 codegen-units = 1
+
+[features]
+default = []
+polling = ["compio/polling"]
