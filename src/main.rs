@@ -88,7 +88,7 @@ async fn connection_string(dest_host: &str, dest_port: &str, auth_file: Option<&
     }
 }
 
-async fn get_response<R: AsyncRead + Unpin>(sock: &mut R) -> (bool, Vec<u8>, usize) {
+async fn get_response(sock: &mut impl AsyncRead) -> (bool, Vec<u8>, usize) {
     let mut buffer = Vec::with_capacity(4096);
     'outer: loop {
         let len = buffer.len();
@@ -146,16 +146,19 @@ async fn copy_io(mut src: impl AsyncRead, mut target: impl AsyncWrite) {
 
 #[cfg(not(unix))]
 mod stdio {
-    use std::{
-        io::{BorrowedBuf, Read, Write},
-        mem::MaybeUninit,
-    };
+    use std::io::{BorrowedBuf, Read, Write};
 
     use compio::{
         buf::{IoBuf, IoBufMut},
         io::{AsyncRead, AsyncWrite},
         BufResult,
     };
+
+    struct SendWrapper<T>(T);
+
+    // SAFETY: we only use arrays and vectors.
+    unsafe impl<T> Send for SendWrapper<T> {}
+    unsafe impl<T> Sync for SendWrapper<T> {}
 
     pub struct Stdin;
 
@@ -164,23 +167,18 @@ mod stdio {
     }
 
     impl AsyncRead for Stdin {
-        async fn read<B: IoBufMut>(&mut self, mut buf: B) -> BufResult<usize, B> {
-            let capacity = buf.buf_capacity();
-            let BufResult(res, buffer) = compio::runtime::spawn_blocking(move || {
-                let mut buffer = Vec::with_capacity(capacity);
-                let mut bbuf = BorrowedBuf::from(buffer.spare_capacity_mut());
+        async fn read<B: IoBufMut>(&mut self, buf: B) -> BufResult<usize, B> {
+            let mut buf = SendWrapper(buf);
+            compio::runtime::spawn_blocking(move || {
+                let mut bbuf = BorrowedBuf::from(buf.0.as_mut_slice());
                 let mut cursor = bbuf.unfilled();
                 let res = std::io::stdin().read_buf(cursor.reborrow());
                 let len = cursor.written();
-                unsafe { buffer.set_len(len) };
-                BufResult(res.map(|()| len), buffer)
+                unsafe { buf.0.set_buf_init(len) };
+                BufResult(res.map(|()| len), buf)
             })
-            .await;
-            if let Ok(len) = res {
-                MaybeUninit::write_slice(&mut buf.as_mut_slice()[..len], &buffer[..len]);
-                unsafe { buf.set_buf_init(len) };
-            }
-            BufResult(res, buf)
+            .await
+            .map_buffer(|buf| buf.0)
         }
     }
 
@@ -192,10 +190,13 @@ mod stdio {
 
     impl AsyncWrite for Stdout {
         async fn write<T: IoBuf>(&mut self, buf: T) -> BufResult<usize, T> {
-            let buffer = buf.as_slice().to_vec();
-            let res =
-                compio::runtime::spawn_blocking(move || std::io::stdout().write(&buffer)).await;
-            BufResult(res, buf)
+            let buf = SendWrapper(buf);
+            compio::runtime::spawn_blocking(move || {
+                let res = std::io::stdout().write(buf.0.as_slice());
+                BufResult(res, buf)
+            })
+            .await
+            .map_buffer(|buf| buf.0)
         }
 
         async fn flush(&mut self) -> std::io::Result<()> {
