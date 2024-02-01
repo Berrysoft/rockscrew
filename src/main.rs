@@ -1,6 +1,3 @@
-#![feature(core_io_borrowed_buf, read_buf)]
-#![feature(maybe_uninit_write_slice)]
-
 use base64::{prelude::BASE64_STANDARD, Engine};
 use compio::{
     buf::{IntoInner, IoBuf},
@@ -146,61 +143,161 @@ async fn copy_io(mut src: impl AsyncRead, mut target: impl AsyncWrite) {
 
 #[cfg(not(unix))]
 mod stdio {
-    use std::io::{BorrowedBuf, Read, Write};
+    use std::{os::windows::io::AsRawHandle, pin::Pin, ptr::null_mut, task::Poll};
 
     use compio::{
-        buf::{IoBuf, IoBufMut},
+        buf::{IntoInner, IoBuf, IoBufMut},
+        driver::{op::BufResultExt, OpCode, RawFd},
         io::{AsyncRead, AsyncWrite},
         BufResult,
     };
+    use windows_sys::Win32::{
+        Storage::FileSystem::{ReadFile, WriteFile},
+        System::IO::OVERLAPPED,
+    };
 
-    struct SendWrapper<T>(T);
+    struct SyncRead<B: IoBufMut> {
+        fd: RawFd,
+        buffer: B,
+    }
 
-    // SAFETY: we only use arrays and vectors.
-    unsafe impl<T> Send for SendWrapper<T> {}
-    unsafe impl<T> Sync for SendWrapper<T> {}
+    impl<B: IoBufMut> SyncRead<B> {
+        pub fn new(fd: RawFd, buffer: B) -> Self {
+            Self { fd, buffer }
+        }
+    }
 
-    pub struct Stdin;
+    impl<B: IoBufMut> OpCode for SyncRead<B> {
+        fn is_overlapped(&self) -> bool {
+            false
+        }
+
+        unsafe fn operate(
+            mut self: Pin<&mut Self>,
+            _optr: *mut OVERLAPPED,
+        ) -> Poll<std::io::Result<usize>> {
+            let fd = self.fd as _;
+            let slice = self.buffer.as_mut_slice();
+            let mut transferred = 0;
+            let res = ReadFile(
+                fd,
+                slice.as_mut_ptr() as _,
+                slice.len() as _,
+                &mut transferred,
+                null_mut(),
+            );
+            if res == 0 {
+                Poll::Ready(Err(std::io::Error::last_os_error()))
+            } else {
+                Poll::Ready(Ok(transferred as _))
+            }
+        }
+
+        unsafe fn cancel(self: Pin<&mut Self>, _optr: *mut OVERLAPPED) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl<B: IoBufMut> IntoInner for SyncRead<B> {
+        type Inner = B;
+
+        fn into_inner(self) -> Self::Inner {
+            self.buffer
+        }
+    }
+
+    struct SyncWrite<B: IoBuf> {
+        fd: RawFd,
+        buffer: B,
+    }
+
+    impl<B: IoBuf> SyncWrite<B> {
+        pub fn new(fd: RawFd, buffer: B) -> Self {
+            Self { fd, buffer }
+        }
+    }
+
+    impl<B: IoBuf> OpCode for SyncWrite<B> {
+        fn is_overlapped(&self) -> bool {
+            false
+        }
+
+        unsafe fn operate(
+            self: Pin<&mut Self>,
+            _optr: *mut OVERLAPPED,
+        ) -> Poll<std::io::Result<usize>> {
+            let fd = self.fd as _;
+            let slice = self.buffer.as_slice();
+            let mut transferred = 0;
+            let res = WriteFile(
+                fd,
+                slice.as_ptr() as _,
+                slice.len() as _,
+                &mut transferred,
+                null_mut(),
+            );
+            if res == 0 {
+                Poll::Ready(Err(std::io::Error::last_os_error()))
+            } else {
+                Poll::Ready(Ok(transferred as _))
+            }
+        }
+
+        unsafe fn cancel(self: Pin<&mut Self>, _optr: *mut OVERLAPPED) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl<B: IoBuf> IntoInner for SyncWrite<B> {
+        type Inner = B;
+
+        fn into_inner(self) -> Self::Inner {
+            self.buffer
+        }
+    }
+
+    pub struct Stdin {
+        fd: std::io::Stdin,
+    }
 
     pub fn stdin() -> Stdin {
-        Stdin
+        Stdin {
+            fd: std::io::stdin(),
+        }
     }
 
     impl AsyncRead for Stdin {
         async fn read<B: IoBufMut>(&mut self, buf: B) -> BufResult<usize, B> {
-            let mut buf = SendWrapper(buf);
-            compio::runtime::spawn_blocking(move || {
-                let mut bbuf = BorrowedBuf::from(buf.0.as_mut_slice());
-                let mut cursor = bbuf.unfilled();
-                let res = std::io::stdin().read_buf(cursor.reborrow());
-                let len = cursor.written();
-                unsafe { buf.0.set_buf_init(len) };
-                BufResult(res.map(|()| len), buf)
-            })
-            .await
-            .map_buffer(|buf| buf.0)
+            let op = SyncRead::new(self.fd.as_raw_handle() as _, buf);
+            compio::runtime::Runtime::current()
+                .submit(op)
+                .await
+                .into_inner()
+                .map_advanced()
         }
     }
 
-    pub struct Stdout;
+    pub struct Stdout {
+        fd: std::io::Stdout,
+    }
 
     pub fn stdout() -> Stdout {
-        Stdout
+        Stdout {
+            fd: std::io::stdout(),
+        }
     }
 
     impl AsyncWrite for Stdout {
         async fn write<T: IoBuf>(&mut self, buf: T) -> BufResult<usize, T> {
-            let buf = SendWrapper(buf);
-            compio::runtime::spawn_blocking(move || {
-                let res = std::io::stdout().write(buf.0.as_slice());
-                BufResult(res, buf)
-            })
-            .await
-            .map_buffer(|buf| buf.0)
+            let op = SyncWrite::new(self.fd.as_raw_handle() as _, buf);
+            compio::runtime::Runtime::current()
+                .submit(op)
+                .await
+                .into_inner()
         }
 
         async fn flush(&mut self) -> std::io::Result<()> {
-            compio::runtime::spawn_blocking(|| std::io::stdout().flush()).await
+            Ok(())
         }
 
         async fn shutdown(&mut self) -> std::io::Result<()> {

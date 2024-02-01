@@ -16,6 +16,9 @@ httparse = "1.8.0"
 compio = { version = "0.9.0-beta.4", features = ["macros", "nightly"] }
 futures-util = "0.3.30"
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.48", features = ["Win32_System_IO"] }
+
 [profile.release]
 lto = true
 codegen-units = 1
