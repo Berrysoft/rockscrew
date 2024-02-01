@@ -8,7 +8,7 @@ repository = "https://github.com/Berrysoft/rockscrew"
 homepage = "https://github.com/Berrysoft/rockscrew"
 keywords = ["corkscrew", "proxy", "http", "https"]
 categories = ["network-programming"]
-license = "GPL-2.0-only"
+license = "GPL-2.0"
 
 [dependencies]
 base64 = "0.21.7"
