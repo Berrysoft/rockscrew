@@ -8,12 +8,15 @@ repository = "https://github.com/Berrysoft/rockscrew"
 homepage = "https://github.com/Berrysoft/rockscrew"
 keywords = ["corkscrew", "proxy", "http", "https"]
 categories = ["network-programming"]
-license = "GPL-2.0"
+license = "GPL-2.0-only"
 
 [dependencies]
 base64 = "0.21.7"
 httparse = "1.8.0"
-compio = { version = "0.9.0-beta.4", features = ["macros", "nightly"] }
+compio = { git = "https://github.com/compio-rs/compio.git", features = [
+    "macros",
+    "nightly",
+] }
 futures-util = "0.3.30"
 
 [target.'cfg(windows)'.dependencies]
