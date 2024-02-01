@@ -141,7 +141,7 @@ async fn copy_io(mut src: impl AsyncRead, mut target: impl AsyncWrite) {
     }
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
 mod stdio {
     use std::{os::windows::io::AsRawHandle, pin::Pin, ptr::null_mut, task::Poll};
 
