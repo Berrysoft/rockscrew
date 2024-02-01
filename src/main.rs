@@ -173,11 +173,12 @@ mod stdio {
         }
 
         unsafe fn operate(
-            mut self: Pin<&mut Self>,
+            self: Pin<&mut Self>,
             _optr: *mut OVERLAPPED,
         ) -> Poll<std::io::Result<usize>> {
-            let fd = self.fd as _;
-            let slice = self.buffer.as_mut_slice();
+            let this = unsafe { self.get_unchecked_mut() };
+            let fd = this.fd as _;
+            let slice = this.buffer.as_mut_slice();
             let mut transferred = 0;
             let res = ReadFile(
                 fd,
@@ -191,10 +192,6 @@ mod stdio {
             } else {
                 Poll::Ready(Ok(transferred as _))
             }
-        }
-
-        unsafe fn cancel(self: Pin<&mut Self>, _optr: *mut OVERLAPPED) -> std::io::Result<()> {
-            Ok(())
         }
     }
 
@@ -242,10 +239,6 @@ mod stdio {
                 Poll::Ready(Ok(transferred as _))
             }
         }
-
-        unsafe fn cancel(self: Pin<&mut Self>, _optr: *mut OVERLAPPED) -> std::io::Result<()> {
-            Ok(())
-        }
     }
 
     impl<B: IoBuf> IntoInner for SyncWrite<B> {
@@ -257,18 +250,18 @@ mod stdio {
     }
 
     pub struct Stdin {
-        fd: std::io::Stdin,
+        fd: RawFd,
     }
 
     pub fn stdin() -> Stdin {
         Stdin {
-            fd: std::io::stdin(),
+            fd: std::io::stdin().as_raw_handle() as _,
         }
     }
 
     impl AsyncRead for Stdin {
         async fn read<B: IoBufMut>(&mut self, buf: B) -> BufResult<usize, B> {
-            let op = SyncRead::new(self.fd.as_raw_handle() as _, buf);
+            let op = SyncRead::new(self.fd, buf);
             compio::runtime::Runtime::current()
                 .submit(op)
                 .await
@@ -278,18 +271,18 @@ mod stdio {
     }
 
     pub struct Stdout {
-        fd: std::io::Stdout,
+        fd: RawFd,
     }
 
     pub fn stdout() -> Stdout {
         Stdout {
-            fd: std::io::stdout(),
+            fd: std::io::stdout().as_raw_handle() as _,
         }
     }
 
     impl AsyncWrite for Stdout {
         async fn write<T: IoBuf>(&mut self, buf: T) -> BufResult<usize, T> {
-            let op = SyncWrite::new(self.fd.as_raw_handle() as _, buf);
+            let op = SyncWrite::new(self.fd, buf);
             compio::runtime::Runtime::current()
                 .submit(op)
                 .await
