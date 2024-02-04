@@ -140,27 +140,32 @@ async fn copy_io(mut src: impl AsyncRead, mut target: impl AsyncWrite) {
 
 #[cfg(windows)]
 mod stdio {
-    use std::{os::windows::io::AsRawHandle, pin::Pin, ptr::null_mut, task::Poll};
+    use std::{
+        io::IsTerminal, os::windows::io::AsRawHandle, pin::Pin, ptr::null_mut, sync::OnceLock,
+        task::Poll,
+    };
 
     use compio::{
         buf::{IntoInner, IoBuf, IoBufMut},
-        driver::{op::BufResultExt, OpCode, RawFd},
+        driver::{
+            op::{BufResultExt, Recv, Send, Sync},
+            OpCode, RawFd,
+        },
         io::{AsyncRead, AsyncWrite},
+        runtime::Runtime,
         BufResult,
     };
-    use windows_sys::Win32::{
-        Storage::FileSystem::{ReadFile, WriteFile},
-        System::IO::OVERLAPPED,
-    };
+    use windows_sys::Win32::System::IO::OVERLAPPED;
 
     struct SyncRead<B: IoBufMut> {
-        fd: RawFd,
-        buffer: B,
+        op: Recv<B>,
     }
 
     impl<B: IoBufMut> SyncRead<B> {
         pub fn new(fd: RawFd, buffer: B) -> Self {
-            Self { fd, buffer }
+            Self {
+                op: Recv::new(fd, buffer),
+            }
         }
     }
 
@@ -173,22 +178,8 @@ mod stdio {
             self: Pin<&mut Self>,
             _optr: *mut OVERLAPPED,
         ) -> Poll<std::io::Result<usize>> {
-            let this = unsafe { self.get_unchecked_mut() };
-            let fd = this.fd as _;
-            let slice = this.buffer.as_mut_slice();
-            let mut transferred = 0;
-            let res = ReadFile(
-                fd,
-                slice.as_mut_ptr() as _,
-                slice.len() as _,
-                &mut transferred,
-                null_mut(),
-            );
-            if res == 0 {
-                Poll::Ready(Err(std::io::Error::last_os_error()))
-            } else {
-                Poll::Ready(Ok(transferred as _))
-            }
+            self.map_unchecked_mut(|this| &mut this.op)
+                .operate(null_mut())
         }
     }
 
@@ -196,18 +187,19 @@ mod stdio {
         type Inner = B;
 
         fn into_inner(self) -> Self::Inner {
-            self.buffer
+            self.op.into_inner()
         }
     }
 
     struct SyncWrite<B: IoBuf> {
-        fd: RawFd,
-        buffer: B,
+        op: Send<B>,
     }
 
     impl<B: IoBuf> SyncWrite<B> {
         pub fn new(fd: RawFd, buffer: B) -> Self {
-            Self { fd, buffer }
+            Self {
+                op: Send::new(fd, buffer),
+            }
         }
     }
 
@@ -220,21 +212,8 @@ mod stdio {
             self: Pin<&mut Self>,
             _optr: *mut OVERLAPPED,
         ) -> Poll<std::io::Result<usize>> {
-            let fd = self.fd as _;
-            let slice = self.buffer.as_slice();
-            let mut transferred = 0;
-            let res = WriteFile(
-                fd,
-                slice.as_ptr() as _,
-                slice.len() as _,
-                &mut transferred,
-                null_mut(),
-            );
-            if res == 0 {
-                Poll::Ready(Err(std::io::Error::last_os_error()))
-            } else {
-                Poll::Ready(Ok(transferred as _))
-            }
+            self.map_unchecked_mut(|this| &mut this.op)
+                .operate(null_mut())
         }
     }
 
@@ -242,51 +221,77 @@ mod stdio {
         type Inner = B;
 
         fn into_inner(self) -> Self::Inner {
-            self.buffer
+            self.op.into_inner()
         }
     }
 
+    static STDIN_ISATTY: OnceLock<bool> = OnceLock::new();
+
     pub struct Stdin {
         fd: RawFd,
+        isatty: bool,
     }
 
     pub fn stdin() -> Stdin {
+        let stdin = std::io::stdin();
+        let isatty = *STDIN_ISATTY.get_or_init(|| {
+            stdin.is_terminal() || Runtime::current().attach(stdin.as_raw_handle()).is_err()
+        });
         Stdin {
-            fd: std::io::stdin().as_raw_handle() as _,
+            fd: stdin.as_raw_handle() as _,
+            isatty,
         }
     }
 
     impl AsyncRead for Stdin {
         async fn read<B: IoBufMut>(&mut self, buf: B) -> BufResult<usize, B> {
-            let op = SyncRead::new(self.fd, buf);
-            compio::runtime::Runtime::current()
-                .submit(op)
-                .await
-                .into_inner()
-                .map_advanced()
+            let runtime = Runtime::current();
+            if self.isatty {
+                let op = SyncRead::new(self.fd, buf);
+                runtime.submit(op).await.into_inner()
+            } else {
+                let op = Recv::new(self.fd, buf);
+                runtime.submit(op).await.into_inner()
+            }
+            .map_advanced()
         }
     }
 
+    static STDOUT_ISATTY: OnceLock<bool> = OnceLock::new();
+
     pub struct Stdout {
         fd: RawFd,
+        isatty: bool,
     }
 
     pub fn stdout() -> Stdout {
+        let stdout = std::io::stdout();
+        let isatty = *STDOUT_ISATTY.get_or_init(|| {
+            stdout.is_terminal() || Runtime::current().attach(stdout.as_raw_handle()).is_err()
+        });
         Stdout {
-            fd: std::io::stdout().as_raw_handle() as _,
+            fd: stdout.as_raw_handle() as _,
+            isatty,
         }
     }
 
     impl AsyncWrite for Stdout {
         async fn write<T: IoBuf>(&mut self, buf: T) -> BufResult<usize, T> {
-            let op = SyncWrite::new(self.fd, buf);
-            compio::runtime::Runtime::current()
-                .submit(op)
-                .await
-                .into_inner()
+            let runtime = Runtime::current();
+            if self.isatty {
+                let op = SyncWrite::new(self.fd, buf);
+                runtime.submit(op).await.into_inner()
+            } else {
+                let op = Send::new(self.fd, buf);
+                runtime.submit(op).await.into_inner()
+            }
         }
 
         async fn flush(&mut self) -> std::io::Result<()> {
+            if !self.isatty {
+                let op = Sync::new(self.fd, true);
+                Runtime::current().submit(op).await.0?;
+            }
             Ok(())
         }
 
