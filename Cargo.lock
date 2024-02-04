@@ -71,7 +71,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "compio"
 version = "0.9.0-beta.4"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "compio-buf",
  "compio-driver",
@@ -88,7 +88,7 @@ dependencies = [
 [[package]]
 name = "compio-buf"
 version = "0.2.0-beta.1"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "arrayvec",
  "bumpalo",
@@ -98,7 +98,7 @@ dependencies = [
 [[package]]
 name = "compio-driver"
 version = "0.2.0-beta.3"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "aligned-array",
  "cfg-if",
@@ -120,7 +120,7 @@ dependencies = [
 [[package]]
 name = "compio-fs"
 version = "0.2.0-beta.2"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "compio-buf",
  "compio-driver",
@@ -135,16 +135,17 @@ dependencies = [
 [[package]]
 name = "compio-io"
 version = "0.1.0-beta.2"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "compio-buf",
+ "futures-util",
  "paste",
 ]
 
 [[package]]
 name = "compio-log"
 version = "0.1.0-beta.1"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "tracing",
 ]
@@ -152,7 +153,7 @@ dependencies = [
 [[package]]
 name = "compio-macros"
 version = "0.1.1-beta.1"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -163,7 +164,7 @@ dependencies = [
 [[package]]
 name = "compio-net"
 version = "0.2.0-beta.2"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "cfg-if",
  "compio-buf",
@@ -180,7 +181,7 @@ dependencies = [
 [[package]]
 name = "compio-runtime"
 version = "0.2.0-beta.3"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "async-task",
  "cfg-if",
@@ -200,7 +201,7 @@ dependencies = [
 [[package]]
 name = "compio-signal"
 version = "0.1.1-beta.2"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "compio-driver",
  "compio-runtime",
@@ -214,7 +215,7 @@ dependencies = [
 [[package]]
 name = "compio-tls"
 version = "0.1.0-beta.3"
-source = "git+https://github.com/compio-rs/compio.git#49eeafa34eb6e790f446e29b507b11728ca91b8c"
+source = "git+https://github.com/compio-rs/compio.git#4cabfec0621b92229331f76dec09cb0e2f324ab9"
 dependencies = [
  "compio-buf",
  "compio-io",
@@ -492,9 +493,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.30"
+version = "0.38.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "322394588aaf33c24007e8bb3238ee3e4c5c09c084ab32bc73890b99ff326bca"
+checksum = "6ea3e1a662af26cd7a3ba09c0297a31af215563ecf42817c98df621387f4e949"
 dependencies = [
  "bitflags 2.4.2",
  "errno",
@@ -520,15 +521,15 @@ dependencies = [
 
 [[package]]
 name = "rustls-pki-types"
-version = "1.1.0"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e9d979b3ce68192e42760c7810125eb6cf2ea10efae545a156063e61f314e2a"
+checksum = "0a716eb65e3158e90e17cd93d855216e27bde02745ab842f2cab4a39dba1bacf"
 
 [[package]]
 name = "rustls-webpki"
-version = "0.102.1"
+version = "0.102.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef4ca26037c909dedb327b48c3327d0ba91d3dd3c4e05dad328f210ffb68e95b"
+checksum = "faaa0a62740bedb9b2ef5afa303da42764c012f743917351dc9a237ea1663610"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -792,9 +793,9 @@ checksum = "dff9641d1cd4be8d1a070daf9e3773c5f67e78b4d9d42263020c057706765c04"
 
 [[package]]
 name = "winnow"
-version = "0.5.36"
+version = "0.5.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "818ce546a11a9986bc24f93d0cdf38a8a1a400f1473ea8c82e59f6e0ffab9249"
+checksum = "a7cad8365489051ae9f054164e459304af2e7e9bb407c958076c8bf4aef52da5"
 dependencies = [
  "memchr",
 ]

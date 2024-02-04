@@ -49,10 +49,10 @@ async fn main() {
         stdout.flush().await.expect("cannot flush stdout");
     }
 
-    let sock2 = sock.try_clone().expect("cannot clone socket");
+    let (sock_read, sock_write) = sock.split();
 
-    let read_task = copy_io(sock, stdout);
-    let write_task = copy_io(stdin, sock2);
+    let read_task = copy_io(sock_read, stdout);
+    let write_task = copy_io(stdin, sock_write);
 
     futures_util::join!(read_task, write_task);
 }
@@ -130,14 +130,11 @@ async fn copy_io(mut src: impl AsyncRead, mut target: impl AsyncWrite) {
         if len == 0 {
             break;
         }
-        let (len, _) = target
+        target
             .write_all(buffer.slice(..len))
             .await
             .expect("cannot write target");
         target.flush().await.expect("cannot flush target");
-        if len == 0 {
-            break;
-        }
     }
 }
 
