@@ -148,7 +148,7 @@ mod stdio {
     use compio::{
         buf::{IntoInner, IoBuf, IoBufMut},
         driver::{
-            op::{BufResultExt, Recv, Send, Sync},
+            op::{BufResultExt, Recv, Send},
             OpCode, RawFd,
         },
         io::{AsyncRead, AsyncWrite},
@@ -288,10 +288,6 @@ mod stdio {
         }
 
         async fn flush(&mut self) -> std::io::Result<()> {
-            if !self.isatty {
-                let op = Sync::new(self.fd, true);
-                Runtime::current().submit(op).await.0?;
-            }
             Ok(())
         }
 
