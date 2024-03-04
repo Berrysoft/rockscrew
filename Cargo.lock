@@ -55,9 +55,9 @@ checksum = "8ea184aa71bb362a1157c896979544cc23974e08fd265f29ea96b59f0b4a555b"
 
 [[package]]
 name = "cc"
-version = "1.0.88"
+version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02f341c093d19155a6e41631ce5971aac4e9a868262212153124c15fa22d1cdc"
+checksum = "a0ba8f7aaa012f30d5b2861462f6708eccd49c3c39863fe083a308035f63d723"
 
 [[package]]
 name = "cfg-if"
@@ -67,8 +67,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "compio"
-version = "0.9.0-beta.4"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a00b7c4c000844a6e0f3b5b087ac54ee28e0a534049446f1005d5dd4d7d4d26b"
 dependencies = [
  "compio-buf",
  "compio-driver",
@@ -84,8 +85,9 @@ dependencies = [
 
 [[package]]
 name = "compio-buf"
-version = "0.2.0-beta.1"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "293f2dd31faab05551153ad8b8ca05bd33c6c04d6ee1d08decd4e9eeb63d1205"
 dependencies = [
  "arrayvec",
  "bumpalo",
@@ -94,8 +96,9 @@ dependencies = [
 
 [[package]]
 name = "compio-driver"
-version = "0.2.0-beta.3"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6bcef11962b9b2256d6927ab63689c0eab1ce5ca71e24d48cbdff6119c62d865"
 dependencies = [
  "aligned-array",
  "cfg-if",
@@ -117,8 +120,9 @@ dependencies = [
 
 [[package]]
 name = "compio-fs"
-version = "0.2.0-beta.2"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98b989595ce84377161295546d063c83422a57f33d5f32553902bae28eb05e7f"
 dependencies = [
  "cfg-if",
  "compio-buf",
@@ -133,8 +137,9 @@ dependencies = [
 
 [[package]]
 name = "compio-io"
-version = "0.1.0-beta.2"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04cb9ca2b04d614c11c519ca2f00b3865c02ee1e40258f90c723d58eda418c45"
 dependencies = [
  "compio-buf",
  "futures-util",
@@ -143,16 +148,18 @@ dependencies = [
 
 [[package]]
 name = "compio-log"
-version = "0.1.0-beta.1"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc4e560213c1996b618da369b7c9109564b41af9033802ae534465c4ee4e132f"
 dependencies = [
  "tracing",
 ]
 
 [[package]]
 name = "compio-macros"
-version = "0.1.1-beta.1"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ddf076f97eb8b2c899413c758f138c166614b81b3b4a87a94215b1a33eef8f0"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -162,8 +169,9 @@ dependencies = [
 
 [[package]]
 name = "compio-net"
-version = "0.2.0-beta.2"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de53af8b59f0a835b7adb538b7b9f73e44200af6fbaebf482efaeca7d744f100"
 dependencies = [
  "cfg-if",
  "compio-buf",
@@ -179,8 +187,9 @@ dependencies = [
 
 [[package]]
 name = "compio-runtime"
-version = "0.2.0-beta.3"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f465f8e4c1fe782796733ff4cfc20d4f7f893135fe8a2997a97dccb58f30026"
 dependencies = [
  "async-task",
  "cfg-if",
@@ -199,8 +208,9 @@ dependencies = [
 
 [[package]]
 name = "compio-signal"
-version = "0.1.1-beta.2"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d45c4dc7e87e7ec328f8bdbf86c4d8a47d7c2fa547ce4d7a42f045284f6de50c"
 dependencies = [
  "compio-driver",
  "compio-runtime",
@@ -213,8 +223,9 @@ dependencies = [
 
 [[package]]
 name = "compio-tls"
-version = "0.1.0-beta.3"
-source = "git+https://github.com/compio-rs/compio.git#b63fc5c386cbc5a4ba29ab796d081c5bf4cdac37"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcde0b8082edd45a2ef1b4f9a96f7adcc80e61949a905dc0a631350d86e60f1e"
 dependencies = [
  "compio-buf",
  "compio-io",
