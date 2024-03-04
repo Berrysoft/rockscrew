@@ -11,16 +11,13 @@ categories = ["network-programming"]
 license = "GPL-2.0-only"
 
 [dependencies]
-base64 = "0.21.7"
+base64 = "0.22.0"
 httparse = "1.8.0"
 compio = { git = "https://github.com/compio-rs/compio.git", features = [
     "macros",
     "nightly",
 ] }
 futures-util = "0.3.30"
-
-[target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.48", features = ["Win32_System_IO"] }
 
 [profile.release]
 lto = true
