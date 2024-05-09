@@ -13,7 +13,7 @@ license = "GPL-2.0-only"
 [dependencies]
 base64 = "0.22.0"
 httparse = "1.8.0"
-compio = { version = "0.9.0", features = ["macros", "nightly"] }
+compio = { version = "0.10.0", features = ["macros", "nightly"] }
 futures-util = "0.3.30"
 
 [profile.release]
