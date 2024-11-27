@@ -1,6 +1,6 @@
 [package]
 name = "rockscrew"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["王宇逸 <Strawberry_Str@hotmail.com>"]
 description = "Port of corkscrew in Rust"
@@ -13,7 +13,7 @@ license = "GPL-2.0-only"
 [dependencies]
 base64 = "0.22.0"
 httparse = "1.8.0"
-compio = { version = "0.12.0", features = ["macros", "nightly"] }
+compio = { version = "0.13.2", features = ["macros", "nightly"] }
 futures-util = "0.3.30"
 
 [profile.release]
